@@ -1,17 +1,17 @@
 #purpose: automate download of eventline proposed and planned features for isap analysis
-#notes: requires rmat creds to get past nifc mfa
+#notes: requires rmat creds to get past nifc mfa, this dir is private, do not share this code with creds
 	#wfigs and nifs url good for 2024, will need to change for use subsequent years
 #author: brian maier
 
 import requests
-from urllib import request
+from urllib import request #this is dumb, should use request or requests not both
 import urllib
 import geopandas as gpd
 
 #####-BEGIN CONFIG-#####
 nifs_outfile_dir = 'D:' #where to save eventline shapefile
-username = '' #rma un
-password = '' #rma pwd
+username = 'RMA_Authoritative' #rma un
+password = 'RMA_1234!' #rma pwd
 fires_select = [] #ex. 'PIONEER'
 #####-END CONFIG-#####
 
