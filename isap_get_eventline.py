@@ -10,8 +10,8 @@ import geopandas as gpd
 
 #####-BEGIN CONFIG-#####
 nifs_outfile_dir = 'D:' #where to save eventline shapefile
-username = 'RMA_Authoritative' #rma un
-password = 'RMA_1234!' #rma pwd
+username = '' #rma un
+password = '' #rma pwd
 fires_select = [] #ex. 'PIONEER'
 #####-END CONFIG-#####
 
