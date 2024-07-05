@@ -302,21 +302,32 @@ res = pd.concat(combine_results(), axis=1)
 res_gdf = pline_buff_gdf.set_index('UniqueID')[['geometry']].join(res)
 single_multi(res_gdf).to_file(proj_gdb, layer='Transmission_Combined', driver='OpenFileGDB')
 
+#create combined PP, DW, INF field bsed on qwra weights
+res_gdf = gpd.read_file(proj_gdb, layer='Transmission_Combined').to_crs(proj_crs)
+#ri from qwra == 100, 50 , 45 == 0.5128, 0.2564, 0.2308
+ri_wts = {'PP': 0.5128, 'DW': 0.2564, 'INFRA': 0.2308}
+res_gdf['SourceRiskCombined'] = (res_gdf['PP_SourceRisk'] * ri_wts['PP']) + (res_gdf['DW_SourceRisk'] * ri_wts['DW']) + \
+    (res_gdf['INFRA_SourceRisk'] * ri_wts['INFRA'])
+res_gdf['InSituRiskCombined'] = (res_gdf['PP_InSituRisk'] * ri_wts['PP']) + (res_gdf['DW_InSituRisk'] * ri_wts['DW']) + \
+    (res_gdf['INFRA_InSituRisk'] * ri_wts['INFRA'])
+zero_centered_min_max_scaling(res_gdf, 'SourceRiskCombined')
+zero_centered_min_max_scaling(res_gdf, 'InSituRiskCombined')
+single_multi(res_gdf).to_file(proj_gdb, layer='Transmission_Combined', driver='OpenFileGDB')
+
 #do some stuff with the tree layer for a probability metric
 res_tree = gpd.read_file(proj_gdb, layer='Transmission_Combined').to_crs(proj_crs)
 res_tree = res_tree.set_index('UniqueID').join(pline_buff_gdf.set_index('UniqueID').drop(['geometry'], axis=1))
 res_tree['tree_mult'] = res_tree.STANDHT_MEAN * res_tree.TPA_DEAD_MEAN
 zero_centered_min_max_scaling(res_tree, 'tree_mult')
 
-cols = ['tree_mult','PP_SourceRisk','PP_InSituRisk','DW_SourceRisk','DW_InSituRisk','INFRA_SourceRisk','INFRA_InSituRisk','geometry']
+cols = ['tree_mult','PP_SourceRisk','PP_InSituRisk','DW_SourceRisk','DW_InSituRisk','INFRA_SourceRisk','INFRA_InSituRisk', \
+    'SourceRiskCombined', 'InSituRiskCombined', 'geometry']
 res_tree = res_tree[cols]
-res_tree_mult = res_tree[['PP_SourceRisk','PP_InSituRisk','DW_SourceRisk','DW_InSituRisk','INFRA_SourceRisk','INFRA_InSituRisk']] \
-    .apply(lambda x: x * res_tree.tree_mult)
-
-for col in res_tree_mult:
+res_tree_mult = res_tree[['PP_SourceRisk','PP_InSituRisk','DW_SourceRisk','DW_InSituRisk','INFRA_SourceRisk','INFRA_InSituRisk', \
+    'SourceRiskCombined', 'InSituRiskCombined']].apply(lambda x: x * res_tree.tree_mult)
+for col in res_tree_mult.columns:
     zero_centered_min_max_scaling(res_tree_mult, col)
-    
-single_multi(pline_buff_gdf.set_index('UniqueID')[['geometry']].join(res_tree_mult)).to_file(proj_gdb, layer='Transmission_Tree', driver='OpenFileGDB')
+single_multi(res_tree[['geometry']].join(res_tree_mult)).to_file(proj_gdb, layer='Transmission_Tree', driver='OpenFileGDB')
 
 #add sdi as attr to results
 sdi_df = pd.DataFrame.from_dict(zonal_stats(pline_buff_gdf, sdi_tif, stats='mean'))
@@ -326,5 +337,4 @@ res_sdi = gpd.read_file(proj_gdb, layer='Transmission_Combined').to_crs(proj_crs
 res_sdi.join(sdi_df).to_file(proj_gdb, layer='Transmission_Combined_Sdi90', driver='OpenFileGDB')
 
 res_sdi_tree = gpd.read_file(proj_gdb, layer='Transmission_Tree').to_crs(proj_crs)
-res_sdi.join(sdi_df).to_file(proj_gdb, layer='Transmission_Tree_Sdi90', driver='OpenFileGDB')
-
+res_sdi_tree.join(sdi_df).to_file(proj_gdb, layer='Transmission_Tree_Sdi90', driver='OpenFileGDB')
