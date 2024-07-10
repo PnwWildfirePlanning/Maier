@@ -4,6 +4,7 @@ import geopandas as gpd
 
 #purpose: convert csv from inform into format suitable for upload to ff+
 	#required ff+ inputs only plus fire name
+	#fdra association set up for pnw gacc only (points to nifc feature)
 #date: 7/9/24
 
 #user input
