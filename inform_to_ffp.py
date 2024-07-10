@@ -61,4 +61,4 @@ fires_df = fires_df.replace({'FDRAName': region_id_dict})
 fires_df['FireId'] = range(fire_id_st_val, 1+len(fires_df))
 cols = ['FDRAName', 'FireDiscoveryDateTime', 'FireId', 'IncidentSize', 'Fire Cause General', 'IncidentName']
 cols_dict = {'FDRAName': 'RegionId', 'FireDiscoveryDateTime': 'FireDisc', 'IncidentSize': 'FireSize', 'Fire Cause General': 'FireCause', 'IncidentName': 'FireName'}
-fires_df[cols].rename(cols_dict, axis=1).to_csv(out_csv)
+fires_df[cols].rename(cols_dict, axis=1).to_csv(out_csv, index=False)
