@@ -2,18 +2,24 @@ import urllib
 import pandas as pd
 import geopandas as gpd
 
+#purpose: convert csv from inform into format suitable for upload to ff+
+	#required ff+ inputs only plus fire name
+#date: 7/9/24
 
+#user input
+#inform csv
 inform_csv_dir = 'D:\\UPF_Inform_2020_2023.csv'
-fdra_url ='https://services3.arcgis.com/T4QMspbfLg3qTGWY/ArcGIS/rest/services/PNW_FDRAs_public/FeatureServer/0/query?' + \
-	'where=OBJECTID>-1&outFields=*&f=pgeojson&token='
+#output csv
 out_csv = 'D:\\UPF_Inform_2020_2023_out.csv'
+#assign a region id to fdra, key value must match FDRAName in nifc feature class Pacific Northwest Fire Danger Rating Areas
 region_id_dict = {
 	'Crest': 1,
 	'Cottage Grove': 2,
 	'North Umpqua': 3,
 	'South Umpqua': 4}
+#assign sequential integer for unique fire id starting with
 fire_id_st_val = 1
-
+#end user input
 
 csv_df = pd.read_csv(inform_csv_dir)
 cols = ['IncidentName', 'FireDiscoveryDateTime', 'IncidentSize', 'Longitude', 'Latitude', 'Fire Cause General']
@@ -40,10 +46,14 @@ def geojson_rest(url):
 	gdf = gpd.read_file(gjson)
 	return gdf 
 
+fdra_url ='https://services3.arcgis.com/T4QMspbfLg3qTGWY/ArcGIS/rest/services/PNW_FDRAs_public/FeatureServer/0/query?' + \
+	'where=OBJECTID>-1&outFields=*&f=pgeojson&token='
 r6fdra_gdf = geojson_rest(fdra_url)
 proj_crs = r6fdra_gdf.crs
+
 fires_gdf = gpd.GeoDataFrame(data=csv_df, geometry=gpd.points_from_xy(csv_df.Longitude, csv_df.Latitude)).set_crs(proj_crs)
 fires_gdf = gpd.overlay(fires_gdf, r6fdra_gdf, how='intersection')
+
 cols = ['IncidentName', 'FireDiscoveryDateTime', 'IncidentSize', 'Fire Cause General', 'FDRAName']
 fires_df = fires_gdf[cols]
 fires_df = fires_df.replace({'FDRAName': region_id_dict})
