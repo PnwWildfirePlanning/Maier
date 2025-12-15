@@ -527,6 +527,18 @@ class RocAnalysis(object):
         df = remove_no_spread(df, min_class_spread)
         return df
 
+    def align_sig_dates(df):
+        l_min = []
+        l_max = []
+        for stn_id in df.station_id.unique():
+            dt_min = df.loc[df.station_id.astype('str') == stn_id]['datetime'].min()
+            dt_max = df.loc[df.station_id.astype('str') == stn_id]['datetime'].max()
+            l_min.append(dt_min)
+            l_max.append(dt_max)
+        sig_dt_min = max(l_min)
+        sig_dt_max = min(l_max)
+        res = df.loc[(df.datetime >= sig_dt_min) & (df.datetime <= sig_dt_max)]
+        return res
     
     def __init__(self, analysis_data):
         self.analysis_data = analysis_data
@@ -618,7 +630,7 @@ class RocAnalysis(object):
                     combinations_list = list(combinations)
                     all_combinations += combinations_list
                 #sigs of 1-3 stations only
-                l = [x for x in all_combinations if len(x) <= 3 & len(x) > 0]
+                l = [x for x in all_combinations if (len(x) <= 3) and (len(x) > 0)]
                 return l
             
             stn_combinations = make_stn_combinations(nfdrs_por.station_id.unique())
@@ -629,6 +641,7 @@ class RocAnalysis(object):
                 for fm in self.user_vars['fuel_models_interest']:
                     sig_nfdrs_fm = sig_nfdrs.loc[sig_nfdrs.fuel_model == fm]
                     if sig_nfdrs_fm.empty == False:
+                        sig_nfdrs_fm = RocAnalysis.align_sig_dates(sig_nfdrs_fm)
                         cols = sig_nfdrs_fm.select_dtypes('number').columns
                         res = sig_nfdrs_fm.groupby('datetime')[cols].mean().reset_index()
                         res['fuel_model'] = fm
@@ -663,7 +676,7 @@ class RocAnalysis(object):
             def prep_data_align_dates(df, data_dates):
                 return df.loc[(df.datetime >= data_dates[0]) & (df.datetime <= data_dates[1])]
 
-            df_wx = sig_combination
+            df_wx = sig_combination.copy()
             if self.user_vars['fires_or_heat'] == 'Fires':
                 df_fires = self.analysis_data.fires.copy()
             else:
@@ -905,6 +918,7 @@ class RocAnalysis(object):
                     except TypeError: #single station, not list
                         df_nfdrs_por = df_nfdrs_por.loc[df_nfdrs_por.station_id == stns]
                     df_nfdrs_por = df_nfdrs_por.loc[df_nfdrs_por.fuel_model == fm]
+                    df_nfdrs_por = RocAnalysis.align_sig_dates(df_nfdrs_por)
                     
                     convert_indice = PercentileConversion(df_nfdrs_por, indice)
                     convert_indice.make_percentile_dict()
@@ -926,8 +940,7 @@ class RocAnalysis(object):
                     ax.xaxis.set_major_locator(mdates.MonthLocator())
                     plt.xticks(rotation=45, ha='right')
                     plt.title(self.analysis_data.fdop_name + ' ' + self.analysis_data.fdra_name + '\nIndice: ' + indice + ' & Fuel Model: ' + fm \
-                        + '\nStations: ' + stns + '\n' + str(df_nfdrs_por.datetime.dt.year.min()) +'-' \
-                        + str(df_nfdrs_por.datetime.dt.year.max()))
+                        + '\nStations: ' + stns + '\n' + str(df_nfdrs_por.datetime.dt.year.min()) + '-' + str(df_nfdrs_por.datetime.dt.year.max()))
                     plt.tight_layout()
                     plt.savefig(self.output_dir_roc + 'Climo_' + str(df_results['id'].values[0]) + '_' + indice + '.jpg')
                     plt.close('all')
