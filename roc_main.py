@@ -537,6 +537,11 @@ class RocAnalysis(object):
             l_max.append(dt_max)
         sig_dt_min = max(l_min)
         sig_dt_max = min(l_max)
+        #let the sig calculate mean for entire year even if one station in sig is down
+        #perhaps the correct way to do this for analysis would be to deviate from wims/ff+
+        #methods and remove all days from analysis where not all stations in sig reported...
+        sig_dt_min = sig_dt_min.replace(month=1, day=1)
+        sig_dt_max = sig_dt_max.replace(month=12, day=31)
         res = df.loc[(df.datetime >= sig_dt_min) & (df.datetime <= sig_dt_max)]
         return res
     
