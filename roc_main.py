@@ -908,48 +908,39 @@ class RocAnalysis(object):
             pass
         
         def results_climo_charts(results_indice_filtered):
-            df = results_indice_filtered.copy()
-            indice = df.indice.values[0]
-            for stns in df.stations.unique():
-                df_stations = df.loc[df.stations == stns]
-                for fm in df_stations.fuel_model.unique():
-                    df_results = df_stations.loc[df_stations.fuel_model == fm]
-                    df_nfdrs_por = self.analysis_data.nfdrs_por.copy()
-                    try:
-                        stns_list = [stns.replace(' ', ', ')]
-                        stns_list = stns_list[0].split(', ')
-                        #print(stns_list)
-                        df_nfdrs_por = df_nfdrs_por[df_nfdrs_por.station_id.isin(stns_list)]
-                    except TypeError: #single station, not list
-                        df_nfdrs_por = df_nfdrs_por.loc[df_nfdrs_por.station_id == stns]
-                    df_nfdrs_por = df_nfdrs_por.loc[df_nfdrs_por.fuel_model == fm]
-                    df_nfdrs_por = RocAnalysis.align_sig_dates(df_nfdrs_por)
-                    
-                    convert_indice = PercentileConversion(df_nfdrs_por, indice)
-                    convert_indice.make_percentile_dict()
-                    
-                    fig, ax = plt.subplots()
-                    plt.style.use('seaborn-v0_8-paper')
-                    ax.plot(df_nfdrs_por.groupby('doy')[indice].mean(), color='grey')
-                    ax.plot(df_nfdrs_por.groupby('doy')[indice].max(), color='red')
-                    ax.plot(df_nfdrs_por.groupby('doy')[indice].min(), color='blue')
-                    ax.set_ylabel('Value')
-                    ax.hlines(df_results.opt_value.values, 0, 365, lw=0.5, color='black')
-                    if indice != 'severe_fire_danger_index':
-                        ax2 = ax.secondary_yaxis('right', functions=(convert_indice.value_to_percent(), convert_indice.percent_to_value()))
-                        ax2.set_ylabel('Percentile')
-                        plt.ylim(0)
-                    if indice == 'severe_fire_danger_index':
-                        plt.ylim(df_nfdrs_por.groupby('doy')[indice].min().min())
-                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-                    ax.xaxis.set_major_locator(mdates.MonthLocator())
-                    plt.xticks(rotation=45, ha='right')
-                    plt.title(self.analysis_data.fdop_name + ' ' + self.analysis_data.fdra_name + '\nIndice: ' + indice + ' & Fuel Model: ' + fm \
-                        + '\nStations: ' + stns + '\n' + str(df_nfdrs_por.datetime.dt.year.min()) + '-' + str(df_nfdrs_por.datetime.dt.year.max()))
-                    plt.tight_layout()
-                    plt.savefig(self.output_dir_roc + 'Climo_' + str(df_results['id'].values[0]) + '_' + indice + '.jpg')
-                    plt.close('all')
-        
+            df_results = results_indice_filtered.copy()
+            sig_combinations = pd.concat(self.sig_combinations)
+            for sig_id in df_results['id'].unique():
+                df_id = df_results.loc[df_results['id'] == sig_id]
+                fm = df_id.fuel_model.values[0]
+                df_nfdrs = sig_combinations.loc[(sig_combinations.sig_id == sig_id) & (sig_combinations.fuel_model == fm)]
+                indice = df_id.indice.values[0]
+                stns = df_id.stations.values[0]
+
+                convert_indice = PercentileConversion(df_nfdrs, indice)
+                convert_indice.make_percentile_dict()
+                
+                fig, ax = plt.subplots()
+                plt.style.use('seaborn-v0_8-paper')
+                ax.plot(df_nfdrs.groupby('doy')[indice].mean(), color='grey')
+                ax.plot(df_nfdrs.groupby('doy')[indice].max(), color='red')
+                ax.plot(df_nfdrs.groupby('doy')[indice].min(), color='blue')
+                ax.set_ylabel('Value')
+                ax.hlines(df_id.opt_value.values, 0, 365, lw=0.5, color='black')
+                if indice != 'severe_fire_danger_index':
+                    ax2 = ax.secondary_yaxis('right', functions=(convert_indice.value_to_percent(), convert_indice.percent_to_value()))
+                    ax2.set_ylabel('Percentile')
+                    plt.ylim(0)
+                if indice == 'severe_fire_danger_index':
+                    plt.ylim(df_nfdrs.groupby('doy')[indice].min().min())
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+                ax.xaxis.set_major_locator(mdates.MonthLocator())
+                plt.xticks(rotation=45, ha='right')
+                plt.title(self.analysis_data.fdop_name + ' ' + self.analysis_data.fdra_name + '\nIndice: ' + indice + ' & Fuel Model: ' + fm \
+                    + '\nStations: ' + stns + '\n' + str(df_nfdrs.datetime.dt.year.min()) + '-' + str(df_nfdrs.datetime.dt.year.max()))
+                plt.tight_layout()
+                plt.savefig(self.output_dir_roc + 'Climo_' + str(df_id['id'].values[0]) + '_' + indice + '.jpg')
+                plt.close('all')
         try:
             results_climo_charts(results_indice_filtered)
         except Exception as e:
@@ -995,3 +986,4 @@ class RocAnalysis(object):
                 r20.to_csv(self.output_dir_roc + 'RocResults_Filtered_IndiceMatches_DecisionSpace_20.csv', index=False)
             except Exception as e:
                 print("No matches exist for " + indices[0] + " and " + indices[1] + "...")
+
