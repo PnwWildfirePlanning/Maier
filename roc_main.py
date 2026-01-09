@@ -910,12 +910,13 @@ class RocAnalysis(object):
         def results_climo_charts(results_indice_filtered):
             df_results = results_indice_filtered.copy()
             sig_combinations = pd.concat(self.sig_combinations)
+            sig_combinations.sig_stns = sig_combinations.sig_stns.apply(lambda x: ' '.join(map(str, x)) if isinstance(x, (tuple, list)) else str(x))
             for sig_id in df_results['id'].unique():
                 df_id = df_results.loc[df_results['id'] == sig_id]
                 fm = df_id.fuel_model.values[0]
-                df_nfdrs = sig_combinations.loc[(sig_combinations.sig_id == sig_id) & (sig_combinations.fuel_model == fm)]
-                indice = df_id.indice.values[0]
                 stns = df_id.stations.values[0]
+                df_nfdrs = sig_combinations.loc[(sig_combinations.sig_stns == stns) & (sig_combinations.fuel_model == fm)]
+                indice = df_id.indice.values[0]
 
                 convert_indice = PercentileConversion(df_nfdrs, indice)
                 convert_indice.make_percentile_dict()
@@ -986,4 +987,5 @@ class RocAnalysis(object):
                 r20.to_csv(self.output_dir_roc + 'RocResults_Filtered_IndiceMatches_DecisionSpace_20.csv', index=False)
             except Exception as e:
                 print("No matches exist for " + indices[0] + " and " + indices[1] + "...")
+
 
